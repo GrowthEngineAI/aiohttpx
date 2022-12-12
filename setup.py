@@ -6,7 +6,7 @@ if sys.version_info.major != 3:
     raise RuntimeError("This package requires Python 3+")
 
 pkg_name = 'aiohttpx'
-gitrepo = 'trisongz/aiohttpx'
+gitrepo = 'GrowthEngineAI/aiohttpx'
 
 root = Path(__file__).parent
 version = root.joinpath('aiohttpx/version.py').read_text().split('VERSION = ', 1)[-1].strip().replace('-', '').replace("'", '')

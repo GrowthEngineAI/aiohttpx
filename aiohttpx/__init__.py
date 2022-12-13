@@ -51,7 +51,10 @@ async with aiohttpx.ProxyClient(base_url = base_url) as client:
 # to allow for easy access
 from httpx._api import delete, get, head, options, patch, post, put, request, stream
 from httpx._auth import Auth, BasicAuth, DigestAuth
-from httpx._client import USE_CLIENT_DEFAULT, AsyncClient, Client
+from httpx._client import USE_CLIENT_DEFAULT
+from httpx._client import AsyncClient as httpxAsyncClient
+from httpx._client import Client as httpxClient
+
 from httpx._config import Limits, Proxy, Timeout, create_ssl_context
 from httpx._content import ByteStream
 from httpx._exceptions import (

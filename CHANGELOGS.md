@@ -1,6 +1,10 @@
 ## aiohttpx Changelogs
+- 0.0.4 (2022-12-13) [hotfix]
+  - Resolve duplicate `Client` classes in `aiohttpx` module.
+
 - 0.0.3 (2022-12-13)
   - Add top level imports from `httpx` for convenience of accessing `httpx` classes and methods.
+
 
 - 0.0.2 (2022-12-12)
   - Added properties/methods within `aiohttpx.Client` class to achieve closer parity.

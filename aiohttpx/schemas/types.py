@@ -34,6 +34,13 @@ __all__ = [
     "FileContent",
     "FileTypes",
     "RequestFiles",
+    "UseClientDefault",
+    "Request",
+    "Response",
+    "BaseTransport",
+    "AsyncBaseTransport",
+    "TracebackType",
+    "Limits",
 ]
 
 PrimitiveData = Optional[Union[str, int, float, bool]]
@@ -97,4 +104,20 @@ FileTypes = Union[
     Tuple[Optional[str], FileContent, Optional[str], Mapping[str, str]],
 ]
 RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
+
+# Aliasing 
+
+UseClientDefault = httpx._client.UseClientDefault
+Response = httpx.Response
+Request = httpx.Request
+
+BaseTransport = httpx.BaseTransport
+AsyncBaseTransport = httpx.AsyncBaseTransport
+TracebackType = httpx._client.TracebackType
+Limits = httpx.Limits
+
+DEFAULT_TIMEOUT_CONFIG = httpx._client.DEFAULT_TIMEOUT_CONFIG
+DEFAULT_LIMITS = httpx._client.DEFAULT_LIMITS
+DEFAULT_MAX_REDIRECTS = httpx._client.DEFAULT_MAX_REDIRECTS
+
 

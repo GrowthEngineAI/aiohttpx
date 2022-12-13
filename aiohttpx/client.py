@@ -9,7 +9,7 @@ from aiohttpx.imports.soup import (
     resolve_bs4,
 )
 from aiohttpx.schemas.params import ClientParams
-
+from aiohttpx.schemas import types as httpxType
 
 # Monkey patching httpx.Response to add soup property
 # that way it is only called when the property is accessed
@@ -83,30 +83,30 @@ class Client:
     def __init__(
         self,
         *,
-        auth: typing.Optional[httpx._client.AuthTypes] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        verify: typing.Optional[httpx._client.VerifyTypes] = None,
-        cert: typing.Optional[httpx._client.CertTypes] = None,
+        auth: typing.Optional[httpxType.AuthTypes] = None,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        verify: typing.Optional[httpxType.VerifyTypes] = None,
+        cert: typing.Optional[httpxType.CertTypes] = None,
         http1: typing.Optional[bool] = None,
         http2: typing.Optional[bool] = None,
-        proxies: typing.Optional[httpx._client.ProxiesTypes] = None,
+        proxies: typing.Optional[httpxType.ProxiesTypes] = None,
 
-        mounts: typing.Optional[typing.Mapping[str, httpx._client.BaseTransport]] = None,
-        async_mounts: typing.Optional[typing.Mapping[str, httpx._client.AsyncBaseTransport]] = None,
+        mounts: typing.Optional[typing.Mapping[str, httpxType.BaseTransport]] = None,
+        async_mounts: typing.Optional[typing.Mapping[str, httpxType.AsyncBaseTransport]] = None,
 
-        timeout: httpx._client.TimeoutTypes = httpx._client.DEFAULT_TIMEOUT_CONFIG,
+        timeout: httpxType.TimeoutTypes = httpxType.DEFAULT_TIMEOUT_CONFIG,
         follow_redirects: typing.Optional[bool] = None,
-        limits: httpx._client.Limits = httpx._client.DEFAULT_LIMITS,
-        max_redirects: int = httpx._client.DEFAULT_MAX_REDIRECTS,
+        limits: httpxType.Limits = httpxType.DEFAULT_LIMITS,
+        max_redirects: int = httpxType.DEFAULT_MAX_REDIRECTS,
         event_hooks: typing.Optional[
             typing.Mapping[str, typing.List[typing.Callable]]
         ] = None,
-        base_url: httpx._client.URLTypes = "",
+        base_url: httpxType.URLTypes = "",
         
-        transport: typing.Optional[httpx._client.BaseTransport] = None,
-        async_transport: typing.Optional[httpx._client.AsyncBaseTransport] = None,
+        transport: typing.Optional[httpxType.BaseTransport] = None,
+        async_transport: typing.Optional[httpxType.AsyncBaseTransport] = None,
 
         app: typing.Optional[typing.Callable] = None,
         trust_env: typing.Optional[bool] = None,
@@ -164,20 +164,112 @@ class Client:
             )
             self._sync_active = True
         return self._sync_client
+    
+    @property
+    def base_url(self) -> typing.Union[str, httpx.URL]:
+        if self._async_client:
+            return self._async_client.base_url
+        return self._sync_client.base_url if self._sync_client else self._config.base_url
+    
+    @property
+    def headers(self) -> typing.Dict[str, str]:
+        if self._async_client:
+            return self._async_client.headers
+        return self._sync_client.headers if self._sync_client else self._config.headers
+
+    @property
+    def params(self) -> typing.Dict[str, str]:
+        if self._async_client:
+            return self._async_client.params
+        return self._sync_client.params if self._sync_client else self._config.params
+    
+    @property
+    def cookies(self) -> typing.Dict[str, str]:
+        if self._async_client:
+            return self._async_client.cookies
+        return self._sync_client.cookies if self._sync_client else self._config.cookies
+    
+    @property
+    def auth(self) -> typing.Optional[httpxType.AuthTypes]:
+        if self._async_client:
+            return self._async_client.auth
+        return self._sync_client.auth if self._sync_client else self._config.auth
+    
+    @property
+    def timeout(self) -> httpxType.TimeoutTypes:
+        if self._async_client:
+            return self._async_client.timeout
+        return self._sync_client.timeout if self._sync_client else self._config.timeout
+
+    @property
+    def event_hooks(self) -> typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]]:
+        if self._async_client:
+            return self._async_client.event_hooks
+        return self._sync_client.event_hooks if self._sync_client else self._config.event_hooks
+
+    def set_auth(self, auth: httpxType.AuthTypes):
+        if self._async_client:
+            self._async_client.auth = auth
+        if self._sync_client:
+            self._sync_client.auth = auth
+        self._config.auth = auth
+    
+    def set_base_url(self, base_url: httpxType.URLTypes):
+        if isinstance(base_url, str): base_url = httpx.URL(base_url)
+        if self._async_client:
+            self._async_client.base_url = base_url
+        if self._sync_client:
+            self._sync_client.base_url = base_url
+        self._config.base_url = str(base_url)
+    
+    def set_headers(self, headers: httpxType.HeaderTypes):
+        if self._async_client:
+            self._async_client.headers = headers
+        if self._sync_client:
+            self._sync_client.headers = headers
+        self._config.headers = headers
+    
+    def set_params(self, params: httpxType.QueryParamTypes):
+        if self._async_client:
+            self._async_client.params = params
+        if self._sync_client:
+            self._sync_client.params = params
+        self._config.params = params
+    
+    def set_cookies(self, cookies: httpxType.CookieTypes):
+        if self._async_client:
+            self._async_client.cookies = cookies
+        if self._sync_client:
+            self._sync_client.cookies = cookies
+        self._config.cookies = cookies
+    
+    def set_timeout(self, timeout: httpxType.TimeoutTypes):
+        if self._async_client:
+            self._async_client.timeout = timeout
+        if self._sync_client:
+            self._sync_client.timeout = timeout
+        self._config.timeout = timeout
+    
+    def set_event_hooks(self, event_hooks: typing.Mapping[str, typing.List[typing.Callable]]):
+        if self._async_client:
+            self._async_client.event_hooks = event_hooks
+        if self._sync_client:
+            self._sync_client.event_hooks = event_hooks
+        self._config.event_hooks = event_hooks
 
     def build_request(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Request:
         """
@@ -208,16 +300,16 @@ class Client:
     async def async_build_request(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Request:
         """
@@ -253,8 +345,8 @@ class Client:
         request: httpx.Request,
         *args,
         stream: bool = False,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
     ) -> httpx.Response:
         """
         Send a request.
@@ -281,18 +373,18 @@ class Client:
     async def async_stream(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> typing.AsyncIterator[httpx.Response]:
         """
@@ -332,18 +424,18 @@ class Client:
     async def async_request(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
         **kwargs,
     ) -> httpx.Response:
@@ -373,14 +465,14 @@ class Client:
     
     async def async_get(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
         soup_enabled: typing.Optional[bool] = None,
     ) -> httpx.Response:
@@ -406,14 +498,14 @@ class Client:
 
     async def async_options(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -435,14 +527,14 @@ class Client:
 
     async def async_head(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -464,18 +556,18 @@ class Client:
 
     async def async_post(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -501,18 +593,18 @@ class Client:
 
     async def async_put(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -538,18 +630,18 @@ class Client:
 
     async def async_patch(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -575,14 +667,14 @@ class Client:
 
     async def async_delete(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -610,8 +702,8 @@ class Client:
         request: httpx.Request,
         *args,
         stream: bool = False,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
     ) -> httpx.Response:
         """
         Send a request.
@@ -638,18 +730,18 @@ class Client:
     def stream(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> typing.Iterator[httpx.Response]:
         """
@@ -689,18 +781,18 @@ class Client:
     def request(
         self,
         method: str,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
         **kwargs,
     ) -> httpx.Response:
@@ -729,14 +821,14 @@ class Client:
     
     def get(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault, None] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
         soup_enabled: typing.Optional[bool] = None,
     ) -> httpx.Response:
@@ -762,14 +854,14 @@ class Client:
 
     def options(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -791,14 +883,14 @@ class Client:
 
     def head(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -820,18 +912,18 @@ class Client:
 
     def post(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -857,18 +949,18 @@ class Client:
 
     def put(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -894,18 +986,18 @@ class Client:
 
     def patch(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        content: typing.Optional[httpx._client.RequestContent] = None,
-        data: typing.Optional[httpx._client.RequestData] = None,
-        files: typing.Optional[httpx._client.RequestFiles] = None,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
         json: typing.Optional[typing.Any] = None,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -931,14 +1023,14 @@ class Client:
 
     def delete(
         self,
-        url: httpx._client.URLTypes,
+        url: httpxType.URLTypes,
         *,
-        params: typing.Optional[httpx._client.QueryParamTypes] = None,
-        headers: typing.Optional[httpx._client.HeaderTypes] = None,
-        cookies: typing.Optional[httpx._client.CookieTypes] = None,
-        auth: typing.Union[httpx._client.AuthTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[bool, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: typing.Union[httpx._client.TimeoutTypes, httpx._client.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[dict] = None,
     ) -> httpx.Response:
         """
@@ -1007,7 +1099,7 @@ class Client:
         self,
         exc_type: typing.Optional[typing.Type[BaseException]] = None,
         exc_value: typing.Optional[BaseException] = None,
-        traceback: typing.Optional[httpx._client.TracebackType] = None,
+        traceback: typing.Optional[httpxType.TracebackType] = None,
     ) -> None:
         self.close()
         if self._sync_active:
@@ -1018,7 +1110,7 @@ class Client:
         self,
         exc_type: typing.Optional[typing.Type[BaseException]] = None,
         exc_value: typing.Optional[BaseException] = None,
-        traceback: typing.Optional[httpx._client.TracebackType] = None,
+        traceback: typing.Optional[httpxType.TracebackType] = None,
     ) -> None:
         await self.aclose()
         if self._async_active:

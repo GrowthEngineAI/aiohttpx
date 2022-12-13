@@ -47,6 +47,47 @@ async with aiohttpx.ProxyClient(base_url = base_url) as client:
 
 """
 
+# import top level classes from httpx
+# to allow for easy access
+from httpx._api import delete, get, head, options, patch, post, put, request, stream
+from httpx._auth import Auth, BasicAuth, DigestAuth
+from httpx._client import USE_CLIENT_DEFAULT, AsyncClient, Client
+from httpx._config import Limits, Proxy, Timeout, create_ssl_context
+from httpx._content import ByteStream
+from httpx._exceptions import (
+    CloseError,
+    ConnectError,
+    ConnectTimeout,
+    CookieConflict,
+    DecodingError,
+    HTTPError,
+    HTTPStatusError,
+    InvalidURL,
+    LocalProtocolError,
+    NetworkError,
+    PoolTimeout,
+    ProtocolError,
+    ProxyError,
+    ReadError,
+    ReadTimeout,
+    RemoteProtocolError,
+    RequestError,
+    RequestNotRead,
+    ResponseNotRead,
+    StreamClosed,
+    StreamConsumed,
+    StreamError,
+    TimeoutException,
+    TooManyRedirects,
+    TransportError,
+    UnsupportedProtocol,
+    WriteError,
+    WriteTimeout,
+)
+from httpx._models import Cookies, Headers, Request, Response
+from httpx._status_codes import codes
+from httpx._types import AsyncByteStream, SyncByteStream
+from httpx._urls import URL, QueryParams
 
 from aiohttpx.client import Client, ClientParams
 

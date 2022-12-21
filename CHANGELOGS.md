@@ -1,4 +1,7 @@
 ## aiohttpx Changelogs
+- 0.0.5 (2022-12-20)
+  - add `setters` in properties for `aiohttpx.Client` to apply across both `async` and `sync` methods. 
+
 - 0.0.4 (2022-12-13) [hotfix]
   - Resolve duplicate `Client` classes in `aiohttpx` module.
 

@@ -147,6 +147,7 @@ class Client:
         self._sync_active: bool = False
         self._async_active: bool = False
 
+
     @property
     def async_client(self) -> httpx.AsyncClient:
         if self._async_client is None or not self._async_active:
@@ -165,41 +166,132 @@ class Client:
             self._sync_active = True
         return self._sync_client
     
+    """
+    Base Url
+    """
     @property
     def base_url(self) -> typing.Union[str, httpx.URL]:
         if self._async_client:
             return self._async_client.base_url
         return self._sync_client.base_url if self._sync_client else self._config.base_url
     
+    @base_url.setter
+    def base_url(self, value: typing.Union[str, httpx.URL]) -> None:
+        return self.set_base_url(value)
+
+    """
+    Headers
+    """
     @property
     def headers(self) -> typing.Dict[str, str]:
-        if self._async_client:
+        if self._async_client is not None:
             return self._async_client.headers
-        return self._sync_client.headers if self._sync_client else self._config.headers
+        if self._sync_client is not None:
+            return self._sync_client.headers
+        if self._config.headers is None:
+            self._config.headers = {}
+        return self._config.headers
+
+    @headers.setter
+    def headers(self, key, value):
+        if self._async_client is not None:
+            self._async_client.headers[key] = value
+        if self._sync_client is not None:
+            self._sync_client.headers[key] = value
+        if self._config.headers is None: self._config.headers = {}
+        self._config.headers[key] = value
+    
+    """
+    cookies
+    """
+    @property
+    def cookies(self) -> typing.Dict[str, str]:
+        if self._async_client is not None:
+            return self._async_client.cookies
+        if self._sync_client is not None:
+            return self._sync_client.cookies
+        if self._config.cookies is None:
+            self._config.cookies = {}
+        return self._config.cookies
+    
+    @cookies.setter
+    def cookies(self, key, value):
+        if self._async_client is not None:
+            self._async_client.cookies[key] = value
+        if self._sync_client is not None:
+            self._sync_client.cookies[key] = value
+        if self._config.cookies is None: self._config.cookies = {}
+        self._config.cookies[key] = value
+    """
+    params
+    """
 
     @property
     def params(self) -> typing.Dict[str, str]:
         if self._async_client:
             return self._async_client.params
-        return self._sync_client.params if self._sync_client else self._config.params
+        if self._sync_client:
+            return self._sync_client.params
+        if self._config.params is None:
+            self._config.params = {}
+        return self._config.params
     
-    @property
-    def cookies(self) -> typing.Dict[str, str]:
+    @params.setter
+    def params(self, key, value):
         if self._async_client:
-            return self._async_client.cookies
-        return self._sync_client.cookies if self._sync_client else self._config.cookies
-    
+            self._async_client.params[key] = value
+        if self._sync_client:
+            self._sync_client.params[key] = value
+        if self._config.params is None: self._config.params = {}
+        self._config.params[key] = value
+        
+
+    """
+    auth
+    """
+
     @property
     def auth(self) -> typing.Optional[httpxType.AuthTypes]:
         if self._async_client:
             return self._async_client.auth
         return self._sync_client.auth if self._sync_client else self._config.auth
     
+    @auth.setter
+    def auth(self, value: typing.Optional[httpxType.AuthTypes]):
+        if self._async_client:
+            self._async_client.auth = value
+        if self._sync_client:
+            self._sync_client.auth = value
+        self._config.auth = value
+
+    """
+    timeout
+    """
     @property
     def timeout(self) -> httpxType.TimeoutTypes:
         if self._async_client:
             return self._async_client.timeout
         return self._sync_client.timeout if self._sync_client else self._config.timeout
+
+    @timeout.setter
+    def timeout(self, value: httpxType.TimeoutTypes):
+        if self._async_client:
+            self._async_client.timeout = value
+        if self._sync_client:
+            self._sync_client.timeout = value
+        self._config.timeout = value
+
+    """
+    proxies
+    """
+    @property
+    def proxies(self) -> typing.Dict[str, str]:
+        return self._config.proxies
+    
+    @proxies.setter
+    def proxies(self, value: typing.Dict[str, str]):
+        self._config.proxies = value
+
 
     @property
     def event_hooks(self) -> typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]]:

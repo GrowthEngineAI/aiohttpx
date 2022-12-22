@@ -178,6 +178,15 @@ class Client:
     @base_url.setter
     def base_url(self, value: typing.Union[str, httpx.URL]) -> None:
         return self.set_base_url(value)
+    
+    def set_base_url(self, base_url: httpxType.URLTypes):
+        if isinstance(base_url, str): base_url = httpx.URL(base_url)
+        if self._async_client:
+            self._async_client.base_url = base_url
+        if self._sync_client:
+            self._sync_client.base_url = base_url
+        self._config.base_url = str(base_url)
+
 
     """
     Headers
@@ -201,6 +210,13 @@ class Client:
         if self._config.headers is None: self._config.headers = {}
         self._config.headers[key] = value
     
+    def set_headers(self, headers: httpxType.HeaderTypes):
+        if self._async_client:
+            self._async_client.headers = headers
+        if self._sync_client:
+            self._sync_client.headers = headers
+        self._config.headers = headers
+    
     """
     cookies
     """
@@ -222,6 +238,21 @@ class Client:
             self._sync_client.cookies[key] = value
         if self._config.cookies is None: self._config.cookies = {}
         self._config.cookies[key] = value
+
+    def set_cookies(self, cookies: httpxType.CookieTypes):
+        if self._async_client:
+            self._async_client.cookies = cookies
+        if self._sync_client:
+            self._sync_client.cookies = cookies
+        self._config.cookies = cookies
+    
+    def clear_cookies(self) -> None:
+        if self._async_client:
+            self._async_client.cookies = None
+        if self._sync_client:
+            self._sync_client.cookies = None
+        self._config.cookies = None
+
     """
     params
     """
@@ -244,7 +275,14 @@ class Client:
             self._sync_client.params[key] = value
         if self._config.params is None: self._config.params = {}
         self._config.params[key] = value
-        
+
+    
+    def set_params(self, params: httpxType.QueryParamTypes):
+        if self._async_client:
+            self._async_client.params = params
+        if self._sync_client:
+            self._sync_client.params = params
+        self._config.params = params
 
     """
     auth
@@ -264,6 +302,14 @@ class Client:
             self._sync_client.auth = value
         self._config.auth = value
 
+
+    def set_auth(self, auth: httpxType.AuthTypes):
+        if self._async_client:
+            self._async_client.auth = auth
+        if self._sync_client:
+            self._sync_client.auth = auth
+        self._config.auth = auth
+
     """
     timeout
     """
@@ -281,6 +327,14 @@ class Client:
             self._sync_client.timeout = value
         self._config.timeout = value
 
+    
+    def set_timeout(self, timeout: httpxType.TimeoutTypes):
+        if self._async_client:
+            self._async_client.timeout = timeout
+        if self._sync_client:
+            self._sync_client.timeout = timeout
+        self._config.timeout = timeout
+
     """
     proxies
     """
@@ -292,6 +346,9 @@ class Client:
     def proxies(self, value: typing.Dict[str, str]):
         self._config.proxies = value
 
+    """
+    event hooks
+    """
 
     @property
     def event_hooks(self) -> typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]]:
@@ -299,55 +356,14 @@ class Client:
             return self._async_client.event_hooks
         return self._sync_client.event_hooks if self._sync_client else self._config.event_hooks
 
-    def set_auth(self, auth: httpxType.AuthTypes):
-        if self._async_client:
-            self._async_client.auth = auth
-        if self._sync_client:
-            self._sync_client.auth = auth
-        self._config.auth = auth
-    
-    def set_base_url(self, base_url: httpxType.URLTypes):
-        if isinstance(base_url, str): base_url = httpx.URL(base_url)
-        if self._async_client:
-            self._async_client.base_url = base_url
-        if self._sync_client:
-            self._sync_client.base_url = base_url
-        self._config.base_url = str(base_url)
-    
-    def set_headers(self, headers: httpxType.HeaderTypes):
-        if self._async_client:
-            self._async_client.headers = headers
-        if self._sync_client:
-            self._sync_client.headers = headers
-        self._config.headers = headers
-    
-    def set_params(self, params: httpxType.QueryParamTypes):
-        if self._async_client:
-            self._async_client.params = params
-        if self._sync_client:
-            self._sync_client.params = params
-        self._config.params = params
-    
-    def set_cookies(self, cookies: httpxType.CookieTypes):
-        if self._async_client:
-            self._async_client.cookies = cookies
-        if self._sync_client:
-            self._sync_client.cookies = cookies
-        self._config.cookies = cookies
-    
-    def set_timeout(self, timeout: httpxType.TimeoutTypes):
-        if self._async_client:
-            self._async_client.timeout = timeout
-        if self._sync_client:
-            self._sync_client.timeout = timeout
-        self._config.timeout = timeout
-    
+
     def set_event_hooks(self, event_hooks: typing.Mapping[str, typing.List[typing.Callable]]):
         if self._async_client:
             self._async_client.event_hooks = event_hooks
         if self._sync_client:
             self._sync_client.event_hooks = event_hooks
         self._config.event_hooks = event_hooks
+        
 
     def build_request(
         self,

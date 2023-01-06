@@ -1,5 +1,8 @@
 ## aiohttpx Changelogs
 
+- 0.0.7 (2023-01-06)
+  - added top level imports of common `urllib` utils
+
 - 0.0.6 (2022-12-21)
   - add additional methods to control `cookies`, `headers`, `params`
 

@@ -92,6 +92,24 @@ from httpx._status_codes import codes
 from httpx._types import AsyncByteStream, SyncByteStream
 from httpx._urls import URL, QueryParams
 
+from urllib.parse import (
+    urlparse, 
+    urlunparse, 
+    urljoin, 
+    urldefrag,
+    urlsplit, 
+    urlunsplit, 
+    urlencode, 
+    parse_qs,
+    parse_qsl, 
+    quote, 
+    quote_plus, 
+    quote_from_bytes,
+    unquote, 
+    unquote_plus,
+    unquote_to_bytes,
+)
+
 from aiohttpx.client import Client, ClientParams
 
 from aiohttpx.schemas.proxies import ProxyManager, ProxyRegion, ProxyEndpoint

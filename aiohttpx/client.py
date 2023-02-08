@@ -25,6 +25,47 @@ def wrap_soup_response(response: httpx.Response) -> httpx.Response:
     setattr(response.__class__, 'soup', soup_property)
     return response
 
+def raise_for_status(self) -> None:
+    """
+    Raise the `HTTPStatusError` if one occurred.
+    """
+    request = self._request
+    if request is None:
+        raise RuntimeError(
+            "Cannot call `raise_for_status` as the request "
+            "instance has not been set on this response."
+        )
+
+    if self.is_success:
+        return
+
+    if self.has_redirect_location:
+        message = (
+            "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+            "Redirect location: '{0.headers[location]}'\n"
+            "For more information check: https://httpstatuses.com/{0.status_code}"
+        )
+    else:
+        message = (
+            "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+            "For more information check: https://httpstatuses.com/{0.status_code}"
+        )
+
+    status_class = self.status_code // 100
+    error_types = {
+        1: "Informational response",
+        3: "Redirect response",
+        4: "Client error",
+        5: "Server error",
+    }
+    error_type = error_types.get(status_class, "Invalid status code")
+    message = message.format(self, error_type=error_type)
+    with suppress(Exception):
+        resp_text = self.text
+        if resp_text: message += f'\nResponse Payload: {resp_text}'
+    raise httpx.HTTPStatusError(message, request=request, response=self)
+
+httpx.Response.raise_for_status = raise_for_status
 
 class Client:
 

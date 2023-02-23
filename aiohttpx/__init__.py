@@ -109,6 +109,17 @@ from urllib.parse import (
     unquote_plus,
     unquote_to_bytes,
 )
+from aiohttpx._api import (
+    async_delete, 
+    async_get, 
+    async_head, 
+    async_options, 
+    async_patch, 
+    async_post, 
+    async_put, 
+    async_request, 
+    async_stream
+)
 
 from aiohttpx.client import Client, ClientParams
 

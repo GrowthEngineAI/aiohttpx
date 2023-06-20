@@ -90,7 +90,10 @@ from httpx._exceptions import (
 from httpx._models import Cookies, Headers, Request, Response
 from httpx._status_codes import codes
 from httpx._types import AsyncByteStream, SyncByteStream
-from httpx._urls import URL, QueryParams
+try:
+    from httpx._urls import URL, QueryParams
+except ImportError:
+    from httpx._models import URL, QueryParams
 
 from urllib.parse import (
     urlparse, 

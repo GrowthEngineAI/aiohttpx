@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import httpx
 import typing
 from contextlib import asynccontextmanager, contextmanager, suppress
@@ -16,7 +18,7 @@ from aiohttpx.schemas import types as httpxType
 # rather than on every request
 
 @lazyproperty
-def soup_property(self):
+def soup_property(self: 'httpx.Response'):
     resolve_bs4(required = False)
     with suppress(Exception):
         return BeautifulSoup(self.text, 'html.parser')
@@ -25,7 +27,7 @@ def wrap_soup_response(response: httpx.Response) -> httpx.Response:
     setattr(response.__class__, 'soup', soup_property)
     return response
 
-def raise_for_status(self) -> None:
+def raise_for_status(self: 'httpx.Response') -> None:
     """
     Raise the `HTTPStatusError` if one occurred.
     """

@@ -5,10 +5,10 @@ import uuid
 import typing
 import concurrent.futures
 
-from lazyops.utils import logger
-from lazyops.types import BaseModel, validator, lazyproperty
 
-from aiohttpx.configs import settings
+# from lazyops.utils import logger
+# from lazyops.types import BaseModel, validator, lazyproperty
+# from aiohttpx.configs import settings
 from aiohttpx.imports.boto import (
     ClientError,
     EndpointConnectionError,
@@ -17,6 +17,14 @@ from aiohttpx.imports.boto import (
     AsyncBotoSession,
     require_boto,
 )
+from aiohttpx.imports.pyd import (
+    BaseModel,
+    validator,
+    pre_root_validator
+)
+from aiohttpx.imports.classprops import lazyproperty
+from aiohttpx.utils.lazy import get_aiohttpx_settings
+from aiohttpx.utils.logs import logger
 
 _aws_regions_default = [
     'us-east-1'
@@ -96,8 +104,8 @@ class ProxyManager(BaseModel):
 
     regions_data: typing.Optional[typing.Dict[str, ProxyRegion]] = {}
 
-    aws_access_key_id: str = settings.aws.aws_access_key_id
-    aws_secret_access_key: str = settings.aws.aws_secret_access_key
+    aws_access_key_id: typing.Optional[str] = None
+    aws_secret_access_key: typing.Optional[str] = None
 
     pagination_limit: typing.Optional[int] = 50
 
@@ -107,17 +115,39 @@ class ProxyManager(BaseModel):
             # logger.info(f"Using region {v} for proxy gateway")
             return _aws_region_map.get(v, _aws_regions_default)
         return v
+    
+    @pre_root_validator()
+    def validate_aws_credentials(cls, values: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
+        """
+        Validates the AWS credentials
+        """
+        settings = get_aiohttpx_settings()
+        if not values.get('aws_access_key_id'):
+            values['aws_access_key_id'] = settings.aws.aws_access_key_id
+        if not values.get('aws_secret_access_key'):
+            values['aws_secret_access_key'] = settings.aws.aws_secret_access_key
+        return values
+
 
     @property
     def base_name(self):
+        """
+        Returns the base name for the proxy gateway
+        """
         return f"aiohttpx Proxy Gateway for {self.base_url}"
 
 
     @lazyproperty
     def uri(self):
+        """
+        Returns the uri for the proxy gateway
+        """
         return self.base_url[:-1] if self.base_url.endswith("/") else self.base_url
 
     def get_unique_name(self):
+        """
+        Returns a unique name for the proxy gateway
+        """
         return f"{self.base_name} ({str(uuid.uuid4())})"
 
     def get_name(self):
@@ -152,7 +182,7 @@ class ProxyManager(BaseModel):
                 ) for region in self.regions
             }
             # logger.info(f'Regions: {self.regions_data}')
-        with concurrent.futures.ThreadPoolExecutor(max_workers=settings.num_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers = get_aiohttpx_settings().num_workers) as executor:
             for region in self.regions_data:
                 if not self.regions_data[region].endpoints:
                     self.regions_data[region].filter_endpoints(

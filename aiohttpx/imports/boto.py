@@ -29,8 +29,7 @@ except ImportError:
     AsyncBotoSession = object
     _aioboto_avail = False
 
-
-from lazyops.utils import resolve_missing, require_missing_wrapper
+from aiohttpx.utils.imports import resolve_missing, require_missing_wrapper
 
 def resolve_botocore(
     required: bool = True,

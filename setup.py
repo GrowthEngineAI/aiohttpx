@@ -14,13 +14,16 @@ version = root.joinpath('aiohttpx/version.py').read_text().split('VERSION = ', 1
 requirements = [
     'httpx',
     'pydantic',
-    'lazyops>=0.2.0',
+    # 'pydantic-settings',
+    # 'lazyops>=0.2.0',
 ]
 
 if sys.version_info.minor < 8:
     requirements.append('typing_extensions')
 
-extras = {}
+extras = {
+    'cli': ['typer'],
+}
 
 args = {
     'packages': find_packages(include = [f'{pkg_name}', f'{pkg_name}.*',]),
@@ -28,7 +31,9 @@ args = {
     'include_package_data': True,
     'long_description': root.joinpath('README.md').read_text(encoding='utf-8'),
     'entry_points': {
-        "console_scripts": []
+        "console_scripts": [
+            'aiohttpx = aiohttpx.cli:run_cmd'
+        ]
     },
     'extras_require': extras,
 }

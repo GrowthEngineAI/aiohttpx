@@ -6,7 +6,6 @@ import struct
 import socket
 import typing
 
-from aiohttpx.configs import settings
 from aiohttpx.utils import logger
 from aiohttpx.client import Client
 from aiohttpx.schemas.proxies import ProxyManager
@@ -16,8 +15,8 @@ class ProxyClient(Client):
     def __init__(
         self,
         base_url: str,
-        aws_access_key_id: typing.Optional[str] = settings.aws.aws_access_key_id,
-        aws_secret_access_key: typing.Optional[str] = settings.aws.aws_secret_access_key,
+        aws_access_key_id: typing.Optional[str] = None,
+        aws_secret_access_key: typing.Optional[str] = None,
         regions: typing.Optional[typing.Union[str, typing.List[str]]] = 'default',
         gateways_per_region: typing.Optional[int] = 1,
         reuse_gateways: typing.Optional[bool] = False,

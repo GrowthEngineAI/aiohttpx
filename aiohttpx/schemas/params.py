@@ -1,6 +1,6 @@
 import httpx
 import typing
-from lazyops.types import BaseModel
+from aiohttpx.imports.pyd import BaseModel, get_pyd_dict
 from aiohttpx.schemas import types as httpxType 
 
 class ClientParams(BaseModel):
@@ -41,8 +41,12 @@ class ClientParams(BaseModel):
 
     @property
     def sync_kwargs(self) -> typing.Dict:
-        data = self.dict(
-            exclude_none = True,
+        """
+        Returns the sync kwargs
+        """
+        data = get_pyd_dict(
+            self, 
+            exclude_none = True, 
             exclude = {'async_transport', 'async_mounts', 'soup_enabled', 'debug'}
         )
         kwargs = data.pop('kwargs', None)
@@ -51,7 +55,14 @@ class ClientParams(BaseModel):
     
     @property
     def async_kwargs(self) -> typing.Dict:
-        data = self.dict(exclude_none = True, exclude = {'soup_enabled', 'debug'})
+        """
+        Returns the async kwargs
+        """
+        data = get_pyd_dict(
+            self, 
+            exclude_none = True, 
+            exclude = {'soup_enabled', 'debug'}
+        )
         if data.get('async_transport'):
             data['transport'] = data.pop('async_transport', None)
         if data.get('async_mounts'):

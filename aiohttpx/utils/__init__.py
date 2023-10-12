@@ -1,4 +1,2 @@
-from __future__ import absolute_import
-
-from lazyops.utils import logger
-
+from .logs import logger, get_logger
+from .lazy import get_aiohttpx_settings

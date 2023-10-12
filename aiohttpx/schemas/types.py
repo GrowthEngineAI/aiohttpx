@@ -1,6 +1,6 @@
 
-import httpx
 import ssl
+import httpx
 from http.cookiejar import CookieJar
 from typing import (
     IO,

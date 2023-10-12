@@ -3,7 +3,8 @@
 Import Handler for bs4
 """
 
-from lazyops.utils import resolve_missing, require_missing_wrapper
+
+from aiohttpx.utils.imports import resolve_missing, require_missing_wrapper
 
 try:
     from bs4 import BeautifulSoup

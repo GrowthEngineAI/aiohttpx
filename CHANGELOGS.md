@@ -1,5 +1,16 @@
 ## aiohttpx Changelogs
 
+
+- 0.0.10 (2023-10-12)
+  - Added suppression of `httpx` if `LOG_LEVEL` != `DEBUG` or `aiohttpx.configs.AiohttpxSettings.debug` is `False`
+
+  - Removed `lazyops` dependency
+
+  - Added `pydantic-v2` suppport
+
+  - Added `cli` component
+
+
 - 0.0.7 (2023-01-06)
   - added top level imports of common `urllib` utils
 

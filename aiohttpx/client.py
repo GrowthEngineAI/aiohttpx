@@ -3,15 +3,19 @@ from __future__ import annotations
 import httpx
 import typing
 from contextlib import asynccontextmanager, contextmanager, suppress
-from lazyops.types import lazyproperty
 from aiohttpx.utils import logger
-
+from aiohttpx.utils.lazy import get_aiohttpx_settings
+from aiohttpx.utils.helpers import is_coro_func
+from aiohttpx.imports.classprops import lazyproperty
 from aiohttpx.imports.soup import (
     BeautifulSoup,
     resolve_bs4,
 )
 from aiohttpx.schemas.params import ClientParams
 from aiohttpx.schemas import types as httpxType
+
+if typing.TYPE_CHECKING:
+    from aiohttpx.configs.base import AiohttpxSettings
 
 # Monkey patching httpx.Response to add soup property
 # that way it is only called when the property is accessed
@@ -156,8 +160,12 @@ class Client:
         default_encoding: str = "utf-8",
         soup_enabled: typing.Optional[bool] = None,
         debug: typing.Optional[bool] = None,
+        init_hooks: typing.Optional[typing.List[typing.Union[typing.Tuple[typing.Callable, typing.Dict], typing.Callable]]] = None,
+        settings: typing.Optional['AiohttpxSettings'] = None,
         **kwargs
     ):
+        self.settings = settings or get_aiohttpx_settings()
+        debug = debug if debug is not None else self.settings.debug
         self._config = ClientParams(
             auth=auth,
             params=params,
@@ -185,14 +193,25 @@ class Client:
             debug=debug,
             kwargs=kwargs
         )
-        self._sync_client: httpx.Client = None
-        self._async_client: httpx.AsyncClient = None
+        self._sync_client: typing.Optional[httpx.Client] = None
+        self._async_client: typing.Optional[httpx.AsyncClient] = None
+        
+        self._sync_init_hooks_completed: typing.Optional[bool] = False
+        self._async_init_hooks_completed: typing.Optional[bool] = False
+
         self._sync_active: bool = False
         self._async_active: bool = False
+
+        self._init_hooks: typing.Optional[typing.List[typing.Union[typing.Tuple[typing.Callable, typing.Dict], typing.Callable]]] = init_hooks or []
+        # Reserved for the async client if the init hooks are coros
+        self._incomplete_hooks: typing.Optional[typing.List[typing.Union[typing.Tuple[typing.Callable, typing.Dict], typing.Callable]]] = []
 
 
     @property
     def async_client(self) -> httpx.AsyncClient:
+        """
+        Returns an async client instance.
+        """
         if self._async_client is None or not self._async_active:
             self._async_client = httpx.AsyncClient(
                 **self._config.async_kwargs
@@ -202,6 +221,9 @@ class Client:
 
     @property
     def sync_client(self) -> httpx.Client:
+        """
+        Returns a sync client instance.
+        """
         if self._sync_client is None or not self._sync_active:
             self._sync_client = httpx.Client(
                 **self._config.sync_kwargs
@@ -214,6 +236,9 @@ class Client:
     """
     @property
     def base_url(self) -> typing.Union[str, httpx.URL]:
+        """
+        Returns the base url
+        """
         if self._async_client:
             return self._async_client.base_url
         return self._sync_client.base_url if self._sync_client else self._config.base_url
@@ -223,6 +248,9 @@ class Client:
         return self.set_base_url(value)
     
     def set_base_url(self, base_url: httpxType.URLTypes):
+        """
+        Sets the base url
+        """
         if isinstance(base_url, str): base_url = httpx.URL(base_url)
         if self._async_client:
             self._async_client.base_url = base_url
@@ -236,6 +264,20 @@ class Client:
     """
     @property
     def headers(self) -> typing.Dict[str, str]:
+        """
+        Get the headers dictionary.
+
+        The headers are retrieved in order of priority:
+        1. From the async client if it exists
+        2. From the sync client if it exists  
+        3. From the config
+
+        If no headers exist yet, initializes an empty dict in the config.
+
+        Returns:
+        Dict[str, str]: The headers dictionary.
+        """
+
         if self._async_client is not None:
             return self._async_client.headers
         if self._sync_client is not None:
@@ -246,6 +288,9 @@ class Client:
 
     @headers.setter
     def headers(self, key, value):
+        """
+        Sets a header key/value pair.
+        """
         if self._async_client is not None:
             self._async_client.headers[key] = value
         if self._sync_client is not None:
@@ -254,6 +299,9 @@ class Client:
         self._config.headers[key] = value
     
     def set_headers(self, headers: httpxType.HeaderTypes):
+        """
+        Sets the headers dictionary.
+        """
         if self._async_client:
             self._async_client.headers = headers
         if self._sync_client:
@@ -265,6 +313,20 @@ class Client:
     """
     @property
     def cookies(self) -> typing.Dict[str, str]:
+        """
+        Get the cookies dictionary.
+
+        The cookies are retrieved in order of priority:
+        1. From the async client if it exists  
+        2. From the sync client if it exists
+        3. From the config
+
+        If no cookies exist yet, initializes an empty dict in the config.
+
+        Returns:
+        Dict[str, str]: The cookies dictionary.
+        """
+
         if self._async_client is not None:
             return self._async_client.cookies
         if self._sync_client is not None:
@@ -283,6 +345,9 @@ class Client:
         self._config.cookies[key] = value
 
     def set_cookies(self, cookies: httpxType.CookieTypes):
+        """
+        Sets the cookies dictionary.
+        """
         if self._async_client:
             self._async_client.cookies = cookies
         if self._sync_client:
@@ -290,6 +355,9 @@ class Client:
         self._config.cookies = cookies
     
     def clear_cookies(self) -> None:
+        """
+        Clears the cookies dictionary.
+        """
         if self._async_client:
             self._async_client.cookies = None
         if self._sync_client:
@@ -302,6 +370,9 @@ class Client:
 
     @property
     def params(self) -> typing.Dict[str, str]:
+        """
+        Returns the params dictionary.
+        """
         if self._async_client:
             return self._async_client.params
         if self._sync_client:
@@ -333,6 +404,9 @@ class Client:
 
     @property
     def auth(self) -> typing.Optional[httpxType.AuthTypes]:
+        """
+        Returns the auth object.
+        """
         if self._async_client:
             return self._async_client.auth
         return self._sync_client.auth if self._sync_client else self._config.auth
@@ -347,6 +421,9 @@ class Client:
 
 
     def set_auth(self, auth: httpxType.AuthTypes):
+        """
+        Sets the auth object.
+        """
         if self._async_client:
             self._async_client.auth = auth
         if self._sync_client:
@@ -358,6 +435,9 @@ class Client:
     """
     @property
     def timeout(self) -> httpxType.TimeoutTypes:
+        """
+        Get the timeout configuration.
+        """
         if self._async_client:
             return self._async_client.timeout
         return self._sync_client.timeout if self._sync_client else self._config.timeout
@@ -383,6 +463,9 @@ class Client:
     """
     @property
     def proxies(self) -> typing.Dict[str, str]:
+        """
+        Get the proxies dictionary.
+        """
         return self._config.proxies
     
     @proxies.setter
@@ -395,6 +478,9 @@ class Client:
 
     @property
     def event_hooks(self) -> typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]]:
+        """
+        The event hooks dictionary.
+        """
         if self._async_client:
             return self._async_client.event_hooks
         return self._sync_client.event_hooks if self._sync_client else self._config.event_hooks
@@ -406,8 +492,50 @@ class Client:
         if self._sync_client:
             self._sync_client.event_hooks = event_hooks
         self._config.event_hooks = event_hooks
-        
+    
+    """
+    init hooks
+    """
 
+    def _run_init_hooks(self):
+        """
+        Run init hooks if present
+        """
+        if self._sync_init_hooks_completed: return
+        if self._init_hooks:
+            while self._init_hooks:
+                hook = self._init_hooks.pop()
+                if type(hook) == tuple: func, kwargs = hook
+                else: func, kwargs = hook, {}
+                if is_coro_func(func):
+                    self._incomplete_hooks.append(hook)
+                    continue
+                func(self, **kwargs)
+        self._sync_init_hooks_completed = True
+    
+    async def _async_run_init_hooks(self):
+        """
+        Run init hooks if present
+        """
+        if self._async_init_hooks_completed: return
+        if self._init_hooks:
+            while self._init_hooks:
+                hook = self._init_hooks.pop()
+                if type(hook) == tuple: func, kwargs = hook
+                else: func, kwargs = hook, {}
+                if is_coro_func(func): await func(self, **kwargs)
+                else: func(self, **kwargs)
+        
+        if self._incomplete_hooks:
+            # these should all be coros
+            while self._incomplete_hooks:
+                hook = self._incomplete_hooks.pop()
+                if type(hook) == tuple: func, kwargs = hook
+                else: func, kwargs = hook, {}
+                await func(self, **kwargs)
+        self._async_init_hooks_completed = True
+
+        
     def build_request(
         self,
         method: str,
@@ -434,6 +562,7 @@ class Client:
 
         [0]: /advanced/#request-instances
         """
+        self._run_init_hooks()
         return self.sync_client.build_request(
             method,
             url,
@@ -474,6 +603,7 @@ class Client:
 
         [0]: /advanced/#request-instances
         """
+        await self._async_run_init_hooks()
         return self.async_client.build_request(
             method,
             url,
@@ -512,12 +642,74 @@ class Client:
 
         [0]: /advanced/#request-instances
         """
+        await self._async_run_init_hooks()
         return await self.async_client.send(
             request,
             *args,
             stream=stream,
             auth=auth,
             follow_redirects=follow_redirects,
+        )
+    
+    async def async_create_stream(
+        self,
+        method: str,
+        url: httpxType.URLTypes,
+        *,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
+        json: typing.Optional[typing.Any] = None,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: typing.Optional[dict] = None,
+    ) -> httpx.Response:
+        """
+        Creates an asynchronous streaming response.
+
+        Builds an asynchronous HTTP request, sends it, and returns a streaming response.
+
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include. 
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
+
+        Returns:
+            httpx.Response: The streaming response.
+        """
+
+        request = await self.async_build_request(
+            method=method,
+            url=url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            timeout=timeout,
+            extensions=extensions,
+        )
+        return await self.async_send(
+            request=request,
+            auth=auth,
+            follow_redirects=follow_redirects,
+            stream=True,
         )
 
     @asynccontextmanager
@@ -539,16 +731,29 @@ class Client:
         extensions: typing.Optional[dict] = None,
     ) -> typing.AsyncIterator[httpx.Response]:
         """
-        Alternative to `httpx.request()` that streams the response body
-        instead of loading it into memory at once.
+        Creates an asynchronous streaming response.
 
-        **Parameters**: See `httpx.request`.
+        Builds an asynchronous HTTP request, sends it, and returns a streaming response wrapped in a contextmanager.
 
-        See also: [Streaming Responses][0]
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include. 
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
 
-        [0]: /quickstart#streaming-responses
+        Returns:
+            typing.AsyncIterator[httpx.Response]: The streaming response.
         """
-        request = await self.async_build_request(
+        response = await self.async_create_stream(
             method=method,
             url=url,
             content=content,
@@ -558,19 +763,16 @@ class Client:
             params=params,
             headers=headers,
             cookies=cookies,
-            timeout=timeout,
-            extensions=extensions,
-        )
-        response = await self.async_send(
-            request=request,
             auth=auth,
             follow_redirects=follow_redirects,
-            stream=True,
+            timeout=timeout,
+            extensions=extensions,
         )
         try:
             yield response
         finally:
             await response.aclose()
+
 
     async def async_request(
         self,
@@ -590,6 +792,33 @@ class Client:
         extensions: typing.Optional[dict] = None,
         **kwargs,
     ) -> httpx.Response:
+        """Sends an asynchronous HTTP request.
+
+        Sends an asynchronous HTTP request using the async client.
+
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include.
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
+            kwargs: Additional arguments to pass to the request.
+
+        Returns:
+            httpx.Response: The HTTP response.
+
+        Raises:
+            Any exceptions raised by the async client.
+        """
+
         #if not self._async_active:
         #    self._init_clients(_reset_async = True)
         if self._config.debug:
@@ -597,6 +826,7 @@ class Client:
             logger.info(f"Headers: {headers}")
             logger.info(f"Params: {params}")
 
+        await self._async_run_init_hooks()
         return await self.async_client.request(
             method=method,
             url=url,
@@ -869,6 +1099,7 @@ class Client:
 
         [0]: /advanced/#request-instances
         """
+        self._run_init_hooks()
         return self.sync_client.send(
             request,
             *args,
@@ -876,6 +1107,67 @@ class Client:
             auth=auth,
             follow_redirects=follow_redirects,
         )
+
+    def create_stream(
+        self,
+        method: str,
+        url: httpxType.URLTypes,
+        *,
+        content: typing.Optional[httpxType.RequestContent] = None,
+        data: typing.Optional[httpxType.RequestData] = None,
+        files: typing.Optional[httpxType.RequestFiles] = None,
+        json: typing.Optional[typing.Any] = None,
+        params: typing.Optional[httpxType.QueryParamTypes] = None,
+        headers: typing.Optional[httpxType.HeaderTypes] = None,
+        cookies: typing.Optional[httpxType.CookieTypes] = None,
+        auth: typing.Union[httpxType.AuthTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: typing.Union[bool, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: typing.Union[httpxType.TimeoutTypes, httpxType.UseClientDefault] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: typing.Optional[dict] = None,
+    ) -> httpx.Response:
+        """
+        Creates a streaming response for a synchronous request.
+
+        Builds a synchronous HTTP request, sends it, and returns a streaming response.
+
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include.
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
+        
+        Returns:
+            httpx.Response: The streaming response.
+        """
+        request = self.build_request(
+            method=method,
+            url=url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            timeout=timeout,
+            extensions=extensions,
+        )
+        return self.send(
+            request=request,
+            auth=auth,
+            follow_redirects=follow_redirects,
+            stream=True,
+        )
+
 
     @contextmanager
     def stream(
@@ -896,16 +1188,30 @@ class Client:
         extensions: typing.Optional[dict] = None,
     ) -> typing.Iterator[httpx.Response]:
         """
-        Alternative to `httpx.request()` that streams the response body
-        instead of loading it into memory at once.
+        Creates a synchronous streaming response.
 
-        **Parameters**: See `httpx.request`.
+        Builds a synchronous HTTP request, sends it, and returns a streaming response wrapped in a contextmanager.
 
-        See also: [Streaming Responses][0]
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include. 
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
 
-        [0]: /quickstart#streaming-responses
+        Returns:
+            typing.Iterator[httpx.Response]: The streaming response.
         """
-        request = self.build_request(
+        
+        response = self.create_stream(
             method=method,
             url=url,
             content=content,
@@ -915,14 +1221,10 @@ class Client:
             params=params,
             headers=headers,
             cookies=cookies,
-            timeout=timeout,
-            extensions=extensions,
-        )
-        response = self.send(
-            request=request,
             auth=auth,
             follow_redirects=follow_redirects,
-            stream=True,
+            timeout=timeout,
+            extensions=extensions,
         )
         try:
             yield response
@@ -947,12 +1249,39 @@ class Client:
         extensions: typing.Optional[dict] = None,
         **kwargs,
     ) -> httpx.Response:
+        """Sends a synchronous HTTP request.
+
+        Sends a synchronous HTTP request using the sync client. 
+
+        Args:
+            method: The HTTP method to use.
+            url: The URL to send the request to.
+            content: The body content.
+            data: The body data.
+            files: The files to include.
+            json: JSON data to include.
+            params: URL parameters to include.
+            headers: Headers to include.
+            cookies: Cookies to include.
+            auth: Authentication settings.
+            follow_redirects: Whether to follow redirects.
+            timeout: Timeout settings.
+            extensions: Extensions to use.
+            kwargs: Additional arguments to pass to the request.
+        
+        Returns:
+            httpx.Response: The HTTP response.
+        
+        Raises:
+            Any exceptions raised by the sync client.
+        """
         #if not self._sync_active:
         #    self._init_clients(_reset_sync = True)
         if self._config.debug:
             logger.info(f"Request: {method} {url}")
             logger.info(f"Headers: {headers}")
             logger.info(f"Params: {params}")
+        self._run_init_hooks()
         return self.sync_client.request(
             method=method,
             url=url,

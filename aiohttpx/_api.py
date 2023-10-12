@@ -114,6 +114,70 @@ async def async_request(
             follow_redirects=follow_redirects,
         )
 
+async def async_create_stream(
+    method: str,
+    url: URLTypes,
+    *,
+    params: typing.Optional[QueryParamTypes] = None,
+    content: typing.Optional[RequestContent] = None,
+    data: typing.Optional[RequestData] = None,
+    files: typing.Optional[RequestFiles] = None,
+    json: typing.Optional[typing.Any] = None,
+    headers: typing.Optional[HeaderTypes] = None,
+    cookies: typing.Optional[CookieTypes] = None,
+    auth: typing.Optional[AuthTypes] = None,
+    proxies: typing.Optional[ProxiesTypes] = None,
+    timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,
+    follow_redirects: bool = False,
+    verify: VerifyTypes = True,
+    cert: typing.Optional[CertTypes] = None,
+    trust_env: bool = True,
+) -> Response:
+    """
+    Creates an asynchronous streaming response.
+
+    Builds an asynchronous HTTP request, sends it, and returns a streaming response.
+
+    Args:
+        method: The HTTP method to use.
+        url: The URL to send the request to.
+        content: The body content.
+        data: The body data.
+        files: The files to include.
+        json: JSON data to include. 
+        params: URL parameters to include.
+        headers: Headers to include.
+        cookies: Cookies to include.
+        auth: Authentication settings.
+        follow_redirects: Whether to follow redirects.
+        timeout: Timeout settings.
+        extensions: Extensions to use.
+
+    Returns:
+        httpx.Response: The streaming response.
+    """
+    async with AsyncClient(
+        cookies=cookies,
+        proxies=proxies,
+        cert=cert,
+        verify=verify,
+        timeout=timeout,
+        trust_env=trust_env,
+    ) as client:
+        return await client.stream(
+            method=method,
+            url=url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            auth=auth,
+            follow_redirects=follow_redirects,
+        )
+
+
 
 @asynccontextmanager
 async def async_stream(

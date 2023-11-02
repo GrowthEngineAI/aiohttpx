@@ -51,7 +51,7 @@ class ApiClient(ABC):
         Returns the API
         """
         if self._api is None:
-            self._api = self.init_client()
+            self.init_client()
         return self._api
 
 

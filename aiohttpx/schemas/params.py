@@ -28,6 +28,7 @@ class ClientParams(BaseModel):
     limits: httpx._client.Limits = httpx._client.DEFAULT_LIMITS
     max_redirects: int = httpx._client.DEFAULT_MAX_REDIRECTS
     event_hooks: typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]] = None
+    async_event_hooks: typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]] = None
     base_url: typing.Optional[typing.Union[str, httpx._client.URL]] = ""
     transport: typing.Optional[httpx._client.BaseTransport] = None
     async_transport: typing.Optional[httpx._client.AsyncBaseTransport] = None
@@ -47,7 +48,7 @@ class ClientParams(BaseModel):
         data = get_pyd_dict(
             self, 
             exclude_none = True, 
-            exclude = {'async_transport', 'async_mounts', 'soup_enabled', 'debug'}
+            exclude = {'async_transport', 'async_mounts', 'async_event_hooks', 'soup_enabled', 'debug'}
         )
         kwargs = data.pop('kwargs', None)
         if kwargs: data.update(kwargs)
@@ -67,6 +68,8 @@ class ClientParams(BaseModel):
             data['transport'] = data.pop('async_transport', None)
         if data.get('async_mounts'):
             data['mounts'] = data.pop('async_mounts', None)
+        if data.get('async_event_hooks'):
+            data['event_hooks'] = data.pop('async_event_hooks', None)
         kwargs = data.pop('kwargs', None)
         if kwargs: data.update(kwargs)
         return data

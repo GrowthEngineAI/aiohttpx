@@ -150,6 +150,9 @@ class Client:
         event_hooks: typing.Optional[
             typing.Mapping[str, typing.List[typing.Callable]]
         ] = None,
+        async_event_hooks: typing.Optional[
+            typing.Mapping[str, typing.List[typing.Callable]]
+        ] = None,
         base_url: httpxType.URLTypes = "",
         
         transport: typing.Optional[httpxType.BaseTransport] = None,
@@ -183,6 +186,7 @@ class Client:
             limits=limits,
             max_redirects=max_redirects,
             event_hooks=event_hooks,
+            async_event_hooks=async_event_hooks,
             base_url=base_url,
             transport=transport,
             async_transport=async_transport,
@@ -486,12 +490,19 @@ class Client:
         return self._sync_client.event_hooks if self._sync_client else self._config.event_hooks
 
 
-    def set_event_hooks(self, event_hooks: typing.Mapping[str, typing.List[typing.Callable]]):
-        if self._async_client:
-            self._async_client.event_hooks = event_hooks
-        if self._sync_client:
-            self._sync_client.event_hooks = event_hooks
-        self._config.event_hooks = event_hooks
+    def set_event_hooks(
+        self, 
+        event_hooks: typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]] = None,
+        async_event_hooks: typing.Optional[typing.Mapping[str, typing.List[typing.Callable]]] = None
+    ):
+        if async_event_hooks:
+            if self._async_client:
+                self._async_client.event_hooks = async_event_hooks
+            self._config.async_event_hooks = async_event_hooks
+        if event_hooks: 
+            if self._sync_client:
+                self._sync_client.event_hooks = event_hooks
+            self._config.event_hooks = event_hooks
     
     """
     init hooks
